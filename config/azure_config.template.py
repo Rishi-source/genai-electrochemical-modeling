@@ -1,22 +1,14 @@
-"""
-Azure OpenAI Configuration Template
-Copy this file to azure_config.py and fill in your credentials.
-
-⚠️ NEVER commit azure_config.py to Git! It's in .gitignore.
-"""
-
-# Azure OpenAI Configuration
 AZURE_CONFIG = {
     "api_version": "2024-12-01-preview",
-    "azure_endpoint": "YOUR_AZURE_ENDPOINT_HERE",  # e.g., "https://your-resource.cognitive services.azure.com/"
+    "azure_endpoint": "YOUR_AZURE_ENDPOINT_HERE",  
     "api_key": "YOUR_API_KEY_HERE",
-    "deployment_name": "YOUR_DEPLOYMENT_NAME",  # e.g., "gpt-4"
+    "deployment_name": "YOUR_DEPLOYMENT_NAME",  
     "model": "gpt-4",
     "temperature": 0.3,
     "max_tokens": 2000,
 }
 
-# Embedding Configuration
+
 EMBEDDING_CONFIG = {
     "azure_endpoint": "YOUR_EMBEDDING_ENDPOINT_HERE",
     "api_key": "YOUR_EMBEDDING_API_KEY_HERE",
@@ -25,7 +17,7 @@ EMBEDDING_CONFIG = {
     "chunk_size": 1000,
 }
 
-# LLM Prompt Settings
+
 PROMPT_CONFIG = {
     "system_role": "You are an expert in electrochemical engineering and computational modeling.",
     "max_history": 10,
@@ -35,7 +27,7 @@ PROMPT_CONFIG = {
     "presence_penalty": 0.0,
 }
 
-# Retry Configuration  
+
 RETRY_CONFIG = {
     "max_retries": 3,
     "initial_delay": 1.0,
@@ -43,7 +35,7 @@ RETRY_CONFIG = {
     "max_delay": 60.0,
 }
 
-# Token Budget
+
 TOKEN_BUDGET = {
     "max_input_tokens": 128000,
     "max_output_tokens": 4096,
@@ -52,7 +44,6 @@ TOKEN_BUDGET = {
 
 
 def get_azure_client_config():
-    """Returns configuration for Azure OpenAI client."""
     return {
         "api_version": AZURE_CONFIG["api_version"],
         "azure_endpoint": AZURE_CONFIG["azure_endpoint"],
@@ -61,7 +52,6 @@ def get_azure_client_config():
 
 
 def get_chat_completion_params():
-    """Returns parameters for chat completion."""
     return {
         "deployment_name": AZURE_CONFIG["deployment_name"],
         "temperature": PROMPT_CONFIG["temperature"],
@@ -73,7 +63,6 @@ def get_chat_completion_params():
 
 
 def get_embedding_params():
-    """Returns parameters for embeddings."""
     return {
         "deployment_name": EMBEDDING_CONFIG["deployment_name"],
         "model": EMBEDDING_CONFIG["model"],

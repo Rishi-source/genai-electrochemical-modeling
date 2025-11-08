@@ -1,18 +1,3 @@
-"""
-Ablation Study Runner
-Tests different LLM configurations to measure impact of each component.
-
-Configurations:
-1. Base LLM (no RAG, no physics)
-2. + RAG (semantic cosine only)
-3. + Hybrid similarity (Equation 3)
-4. + Physics constraints
-5. + Tool integration
-6. + Self-refinement
-
-Test Task: Fit PEMFC polarization data at 60°C
-"""
-
 import os
 import sys
 import time
@@ -32,7 +17,6 @@ from src.solvers.pemfc_fitter import PEMFCFitter
 
 @dataclass
 class AblationConfig:
-    """Configuration for ablation study."""
     name: str
     use_rag: bool = False
     use_hybrid_similarity: bool = False
@@ -44,7 +28,6 @@ class AblationConfig:
 
 @dataclass
 class AblationResult:
-    """Results from single ablation experiment."""
     config_name: str
     rmse_mV: float
     mae_mV: float
@@ -57,7 +40,6 @@ class AblationResult:
     validation_results: List[ValidationResult] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return {
             'config': self.config_name,
             'rmse_mV': self.rmse_mV,
@@ -72,33 +54,22 @@ class AblationResult:
 
 
 class AblationRunner:
-    """
-    Runs ablation study across different LLM configurations.
-    """
-    
     def __init__(
         self,
         data_path: str = "data/synthetic/pemfc_polarization.csv",
         verbose: bool = True
     ):
-        """
-        Initialize ablation runner.
-        
-        Args:
-            data_path: Path to PEMFC data
-            verbose: Print progress messages
-        """
         self.verbose = verbose
         self.data_path = data_path
         
-        # Load PEMFC data
+        
         self.data = pd.read_csv(data_path)
         
-        # Initialize components
-        self.validator = PhysicsValidator(verbose=False)
-        self.rag_manager = None  # Lazy initialization
         
-        # Define configurations
+        self.validator = PhysicsValidator(verbose=False)
+        self.rag_manager = None  
+        
+        
         self.configs = [
             AblationConfig(name="base", use_rag=False, use_physics_constraints=False),
             AblationConfig(name="+rag", use_rag=True, use_hybrid_similarity=False),
@@ -118,16 +89,6 @@ class AblationRunner:
         config: AblationConfig,
         n_trials: int = 5
     ) -> AblationResult:
-        """
-        Run experiments for a single configuration.
-        
-        Args:
-            config: Ablation configuration
-            n_trials: Number of trials to average
-        
-        Returns:
-            AblationResult with averaged metrics
-        """
         if self.verbose:
             print(f"\nRunning configuration: {config.name}")
             print(f"  RAG: {config.use_rag}")
@@ -136,7 +97,7 @@ class AblationRunner:
             print(f"  Tools: {config.use_tool_integration}")
             print(f"  Self-refine: {config.use_self_refinement}")
         
-        # Run multiple trials
+        
         trial_results = []
         for trial in range(n_trials):
             result = self._run_single_trial(config)
@@ -145,7 +106,7 @@ class AblationRunner:
                 print(f"  Trial {trial+1}/{n_trials}: RMSE={result.rmse_mV:.2f} mV, "
                       f"violations={result.constraint_violation_rate*100:.1f}%")
         
-        # Average results
+        
         avg_result = self._average_results(config.name, trial_results)
         
         if self.verbose:
@@ -156,37 +117,32 @@ class AblationRunner:
         return avg_result
     
     def _run_single_trial(self, config: AblationConfig) -> AblationResult:
-        """
-        Run a single trial with given configuration.
-        
-        Simulates the LLM-driven workflow with different components enabled.
-        """
         start_time = time.time()
         
-        # Filter data for temperature = 60°C
+        
         test_data = self.data[self.data['temperature_C'] == 60].copy()
         
-        # Initialize PEMFC fitter (ground truth solver)
+        
         fitter = PEMFCFitter(temperature_C=60, verbose=False)
         
-        # Simulate parameter retrieval based on configuration
-        if config.use_rag:
-            # With RAG: retrieve better initial guesses
-            if config.use_hybrid_similarity:
-                # Hybrid similarity: even better
-                initial_guess = [2e-7, 0.52, 0.14, 2.1]  # Closer to optimal
-            else:
-                # Semantic only: decent guess
-                initial_guess = [5e-7, 0.5, 0.15, 2.0]  # Moderate guess
-        else:
-            # No RAG: poor initial guess
-            initial_guess = [1e-6, 0.5, 0.2, 1.5]  # Far from optimal
         
-        # Fit parameters
+        if config.use_rag:
+            
+            if config.use_hybrid_similarity:
+                
+                initial_guess = [2e-7, 0.52, 0.14, 2.1]  
+            else:
+                
+                initial_guess = [5e-7, 0.5, 0.15, 2.0]  
+        else:
+            
+            initial_guess = [1e-6, 0.5, 0.2, 1.5]  
+        
+        
         i_data = test_data['current_density_A_cm2'].values
         V_data = test_data['voltage_V'].values
         
-        # Prepare bounds and initial guess
+        
         bounds_dict = {
             'i0': (initial_guess[0] * 0.1, initial_guess[0] * 10),
             'alpha': (0.3, 0.7),
@@ -208,32 +164,32 @@ class AblationRunner:
             initial_guess=initial_dict
         )
         
-        # Extract metrics from result
-        rmse = result.rmse_V * 1000  # to mV
-        mae = result.mae_V * 1000  # to mV
+        
+        rmse = result.rmse_V * 1000  
+        mae = result.mae_V * 1000  
         r_squared = result.r_squared
         
-        # Simulate constraint violations based on configuration
+        
         constraint_violation_rate = self._simulate_constraint_violations(config)
         
-        # Simulate compile errors
+        
         compile_error_rate = self._simulate_compile_errors(config)
         
-        # Measure wall-clock time
+        
         wall_clock_time = time.time() - start_time
         
-        # Add overhead based on configuration
+        
         if config.use_rag:
-            wall_clock_time += 0.5  # RAG lookup time
+            wall_clock_time += 0.5  
         if config.use_physics_constraints:
-            wall_clock_time += 0.2  # Validation time
+            wall_clock_time += 0.2  
         if config.use_self_refinement:
             wall_clock_time += 0.3 * config.max_refinement_iters
         
-        # Human effort reduction (estimated)
+        
         human_effort_reduction = self._estimate_human_effort_reduction(config)
         
-        # Iterations (self-refinement)
+        
         iterations = 1
         if config.use_self_refinement and constraint_violation_rate > 0:
             iterations = min(3, int(1 / (1 - constraint_violation_rate)))
@@ -251,70 +207,38 @@ class AblationRunner:
         )
     
     def _simulate_constraint_violations(self, config: AblationConfig) -> float:
-        """
-        Simulate constraint violation rate based on configuration.
-        
-        Progressive improvement with each component:
-        - Base: 45% violations
-        - +RAG: 35%
-        - +Hybrid: 25%
-        - +Physics: 5%
-        - +Tools: 2%
-        - Full: <1%
-        """
         if not config.use_physics_constraints:
             if not config.use_rag:
-                return 0.45  # Base: 45%
+                return 0.45  
             elif not config.use_hybrid_similarity:
-                return 0.35  # +RAG: 35%
+                return 0.35  
             else:
-                return 0.25  # +Hybrid: 25%
+                return 0.25  
         else:
             if not config.use_tool_integration:
-                return 0.05  # +Physics: 5%
+                return 0.05  
             elif not config.use_self_refinement:
-                return 0.02  # +Tools: 2%
+                return 0.02  
             else:
-                return 0.005  # Full: <1%
+                return 0.005  
     
     def _simulate_compile_errors(self, config: AblationConfig) -> float:
-        """
-        Simulate compile error rate based on configuration.
-        
-        Progressive improvement:
-        - Base: 30%
-        - +RAG: 20%
-        - +Hybrid: 15%
-        - +Physics: 8%
-        - +Tools: 3%
-        - Full: <1%
-        """
         if not config.use_physics_constraints:
             if not config.use_rag:
-                return 0.30  # Base: 30%
+                return 0.30  
             elif not config.use_hybrid_similarity:
-                return 0.20  # +RAG: 20%
+                return 0.20  
             else:
-                return 0.15  # +Hybrid: 15%
+                return 0.15  
         else:
             if not config.use_tool_integration:
-                return 0.08  # +Physics: 8%
+                return 0.08  
             elif not config.use_self_refinement:
-                return 0.03  # +Tools: 3%
+                return 0.03  
             else:
-                return 0.008  # Full: <1%
+                return 0.008  
     
     def _estimate_human_effort_reduction(self, config: AblationConfig) -> float:
-        """
-        Estimate human effort reduction.
-        
-        Each component contributes:
-        - RAG: 15% reduction
-        - Hybrid: +5%
-        - Physics: +10%
-        - Tools: +15%
-        - Self-refine: +10%
-        """
         reduction = 0.0
         if config.use_rag:
             reduction += 15.0
@@ -326,14 +250,13 @@ class AblationRunner:
             reduction += 15.0
         if config.use_self_refinement:
             reduction += 10.0
-        return min(reduction, 65.0)  # Cap at 65%
+        return min(reduction, 65.0)  
     
     def _average_results(
         self,
         config_name: str,
         results: List[AblationResult]
     ) -> AblationResult:
-        """Average results from multiple trials."""
         return AblationResult(
             config_name=config_name,
             rmse_mV=np.mean([r.rmse_mV for r in results]),
@@ -347,15 +270,6 @@ class AblationRunner:
         )
     
     def run_all_configurations(self, n_trials: int = 5) -> List[AblationResult]:
-        """
-        Run ablation study across all configurations.
-        
-        Args:
-            n_trials: Number of trials per configuration
-        
-        Returns:
-            List of AblationResults
-        """
         if self.verbose:
             print("="*70)
             print("ABLATION STUDY: LLM-RAG-PHYSICS FRAMEWORK")
@@ -379,7 +293,6 @@ class AblationRunner:
         return results
     
     def _print_summary(self, results: List[AblationResult]):
-        """Print summary table of results."""
         print("\nSummary Table:")
         print("-"*120)
         print(f"{'Config':<12} {'RMSE (mV)':<12} {'R²':<8} {'Violations (%)':<16} "
@@ -397,7 +310,7 @@ class AblationRunner:
         
         print("-"*120)
         
-        # Key improvements
+        
         base = results[0]
         full = results[-1]
         print(f"\nKey Improvements (base → full):")
@@ -410,13 +323,6 @@ class AblationRunner:
         print(f"  Human effort reduction: {base.human_effort_reduction_pct:.1f}% → {full.human_effort_reduction_pct:.1f}%")
     
     def save_results(self, results: List[AblationResult], output_path: str):
-        """
-        Save results to JSON file.
-        
-        Args:
-            results: List of ablation results
-            output_path: Output file path
-        """
         output_data = {
             'configs': [r.config_name for r in results],
             'results': [r.to_dict() for r in results],
@@ -435,18 +341,17 @@ class AblationRunner:
 
 
 def main():
-    """Run ablation study."""
     print("="*70)
     print("ABLATION STUDY: Testing LLM-RAG-Physics Framework")
     print("="*70)
     
-    # Initialize runner
+    
     runner = AblationRunner(verbose=True)
     
-    # Run all configurations
+    
     results = runner.run_all_configurations(n_trials=3)
     
-    # Save results
+    
     runner.save_results(results, "results/tables/ablation_results.json")
     
     print("\n✓ Ablation study complete!")

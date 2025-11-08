@@ -1,12 +1,7 @@
-"""
-Generate DRL training visualization from saved results.
-"""
-
 import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Load DRL results
 with open('results/tables/drl_vrfb_results.json', 'r') as f:
     results = json.load(f)
 
@@ -16,10 +11,8 @@ print(f"  WLSS: {results['final_wlss_%']:.2f}%")
 print(f"  Training time: {results['training_time_s']:.1f}s")
 print(f"  Total steps: {results['total_steps']}")
 
-# Create summary figure
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-# 1. Key metrics
 ax = axes[0]
 metrics = ['SOC RMSE', 'WLSS (%)']
 values = [results['final_soc_rmse'], results['final_wlss_%']]
@@ -30,14 +23,12 @@ ax.set_ylabel('Value', fontsize=12, fontweight='bold')
 ax.set_title('DRL Final Performance Metrics', fontsize=14, fontweight='bold')
 ax.grid(True, alpha=0.3, axis='y')
 
-# Add value labels on bars
 for bar, value in zip(bars, values):
     height = bar.get_height()
     ax.text(bar.get_x() + bar.get_width()/2., height,
             f'{value:.4f}' if value < 1 else f'{value:.2f}',
             ha='center', va='bottom', fontweight='bold')
 
-# 2. Training info
 ax = axes[1]
 ax.axis('off')
 

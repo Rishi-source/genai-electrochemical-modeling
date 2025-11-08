@@ -1,10 +1,3 @@
-"""
-ANN Baseline for PEMFC Voltage Prediction
-Implements the architecture from Paper [2]: 3 hidden layers × 50 neurons.
-
-Comparison baseline for LLM-RAG-Physics framework.
-"""
-
 import os
 import numpy as np
 import pandas as pd
@@ -26,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 @dataclass
 class ANNTrainingResult:
-    """Results from ANN training."""
     train_rmse: float
     val_rmse: float
     test_rmse: float
@@ -43,34 +35,20 @@ class ANNTrainingResult:
 
 
 class PEMFC_ANN(nn.Module):
-    """
-    Artificial Neural Network for PEMFC voltage prediction.
-    
-    Architecture: Input → 50 → 50 → 50 → Output
-    Activation: ReLU
-    Optimizer: Adam
-    """
     
     def __init__(self, input_dim: int = 5):
-        """
-        Initialize ANN.
-        
-        Args:
-            input_dim: Number of input features
-        """
         super(PEMFC_ANN, self).__init__()
         
-        # Architecture from Paper [2]: 3 hidden layers × 50 neurons
+        
         self.fc1 = nn.Linear(input_dim, 50)
         self.fc2 = nn.Linear(50, 50)
         self.fc3 = nn.Linear(50, 50)
         self.fc4 = nn.Linear(50, 1)
         
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.2)  # Regularization
+        self.dropout = nn.Dropout(0.2)  
         
     def forward(self, x):
-        """Forward pass."""
         x = self.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.relu(self.fc2(x))
@@ -82,9 +60,6 @@ class PEMFC_ANN(nn.Module):
 
 
 class PEMFC_ANN_Trainer:
-    """
-    Trainer for PEMFC ANN baseline.
-    """
     
     def __init__(
         self,
@@ -95,17 +70,6 @@ class PEMFC_ANN_Trainer:
         device: str = 'cpu',
         verbose: bool = True
     ):
-        """
-        Initialize trainer.
-        
-        Args:
-            learning_rate: Adam optimizer learning rate
-            batch_size: Training batch size
-            epochs: Maximum training epochs
-            early_stopping_patience: Epochs to wait for improvement
-            device: 'cpu' or 'cuda'
-            verbose: Print progress
-        """
         self.lr = learning_rate
         self.batch_size = batch_size
         self.epochs = epochs
@@ -124,34 +88,22 @@ class PEMFC_ANN_Trainer:
         val_size: float = 0.15,
         random_state: int = 42
     ) -> Tuple[DataLoader, DataLoader, DataLoader]:
-        """
-        Load and prepare data (70/15/15 split).
         
-        Args:
-            data_path: Path to CSV data
-            test_size: Test set fraction
-            val_size: Validation set fraction
-            random_state: Random seed
-        
-        Returns:
-            (train_loader, val_loader, test_loader)
-        """
-        # Load data
         df = pd.read_csv(data_path)
         
-        # Features: current, temperature, stoich_anode, stoich_cathode, pressure
+        
         features = [
             'current_density_A_cm2',
             'temperature_C',
             'stoich_anode',
             'stoich_cathode',
-            'p_H2_atm'  # Could also add p_O2_atm if available
+            'p_H2_atm'  
         ]
         
         X = df[features].values
         y = df['voltage_V'].values.reshape(-1, 1)
         
-        # Split: 70% train, 15% val, 15% test
+        
         X_temp, X_test, y_temp, y_test = train_test_split(
             X, y, test_size=test_size, random_state=random_state
         )
@@ -161,7 +113,7 @@ class PEMFC_ANN_Trainer:
             X_temp, y_temp, test_size=val_fraction, random_state=random_state
         )
         
-        # Standardize
+        
         X_train = self.scaler_X.fit_transform(X_train)
         X_val = self.scaler_X.transform(X_val)
         X_test = self.scaler_X.transform(X_test)
@@ -170,7 +122,7 @@ class PEMFC_ANN_Trainer:
         y_val = self.scaler_y.transform(y_val)
         y_test = self.scaler_y.transform(y_test)
         
-        # Convert to tensors
+        
         train_dataset = TensorDataset(
             torch.FloatTensor(X_train),
             torch.FloatTensor(y_train)
@@ -184,7 +136,7 @@ class PEMFC_ANN_Trainer:
             torch.FloatTensor(y_test)
         )
         
-        # Create data loaders
+        
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
@@ -207,25 +159,15 @@ class PEMFC_ANN_Trainer:
         train_loader: DataLoader,
         val_loader: DataLoader
     ) -> ANNTrainingResult:
-        """
-        Train ANN with early stopping.
         
-        Args:
-            train_loader: Training data loader
-            val_loader: Validation data loader
-        
-        Returns:
-            Training results
-        """
-        # Initialize model
         input_dim = next(iter(train_loader))[0].shape[1]
         self.model = PEMFC_ANN(input_dim=input_dim).to(self.device)
         
-        # Loss and optimizer
+        
         criterion = nn.MSELoss()
         optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         
-        # Training history
+        
         train_losses = []
         val_losses = []
         best_val_loss = float('inf')
@@ -241,7 +183,7 @@ class PEMFC_ANN_Trainer:
             print(f"  Early stopping patience: {self.patience}")
         
         for epoch in range(self.epochs):
-            # Training
+            
             self.model.train()
             train_loss = 0.0
             for X_batch, y_batch in train_loader:
@@ -259,7 +201,7 @@ class PEMFC_ANN_Trainer:
             train_loss /= len(train_loader.dataset)
             train_losses.append(train_loss)
             
-            # Validation
+            
             self.model.eval()
             val_loss = 0.0
             with torch.no_grad():
@@ -274,7 +216,7 @@ class PEMFC_ANN_Trainer:
             val_loss /= len(val_loader.dataset)
             val_losses.append(val_loss)
             
-            # Early stopping
+            
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
@@ -292,7 +234,7 @@ class PEMFC_ANN_Trainer:
                     print(f"\n✓ Early stopping at epoch {epoch+1}")
                 break
         
-        # Load best model
+        
         self.model.load_state_dict(best_model_state)
         
         if self.verbose:
@@ -306,15 +248,6 @@ class PEMFC_ANN_Trainer:
         self,
         test_loader: DataLoader
     ) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
-        """
-        Evaluate on test set.
-        
-        Args:
-            test_loader: Test data loader
-        
-        Returns:
-            (rmse, mae, r_squared, predictions, actual)
-        """
         self.model.eval()
         predictions = []
         actuals = []
@@ -329,11 +262,11 @@ class PEMFC_ANN_Trainer:
         predictions = np.concatenate(predictions, axis=0)
         actuals = np.concatenate(actuals, axis=0)
         
-        # Inverse transform
+        
         predictions = self.scaler_y.inverse_transform(predictions)
         actuals = self.scaler_y.inverse_transform(actuals)
         
-        # Metrics
+        
         residuals = actuals - predictions
         rmse = np.sqrt(np.mean(residuals**2))
         mae = np.mean(np.abs(residuals))
@@ -353,34 +286,25 @@ class PEMFC_ANN_Trainer:
         self,
         n_samples: int = 100
     ) -> np.ndarray:
-        """
-        Compute SHAP feature importance.
-        
-        Args:
-            n_samples: Number of samples for SHAP
-        
-        Returns:
-            Feature importance array
-        """
         if self.verbose:
             print(f"\nComputing SHAP feature importance...")
         
-        # Sample data
+        
         indices = np.random.choice(len(self.X_test), min(n_samples, len(self.X_test)), replace=False)
         X_sample = self.X_test[indices]
         
-        # Convert to tensor for model
+        
         def model_predict(x):
             self.model.eval()
             with torch.no_grad():
                 x_tensor = torch.FloatTensor(x).to(self.device)
                 return self.model(x_tensor).cpu().numpy()
         
-        # SHAP explainer
+        
         explainer = shap.KernelExplainer(model_predict, X_sample)
         shap_values = explainer.shap_values(X_sample)
         
-        # Mean absolute SHAP values
+        
         importance = np.abs(shap_values).mean(axis=0)
         
         if self.verbose:
@@ -400,21 +324,9 @@ class PEMFC_ANN_Trainer:
         rmse: float,
         save_path: Optional[str] = None
     ):
-        """
-        Plot training history and predictions.
-        
-        Args:
-            train_losses: Training losses
-            val_losses: Validation losses
-            predictions: Predicted voltages
-            actual: Actual voltages
-            r_squared: R² score
-            rmse: RMSE
-            save_path: Path to save figure
-        """
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         
-        # 1. Training history
+        
         ax = axes[0]
         ax.plot(train_losses, label='Train Loss', linewidth=2)
         ax.plot(val_losses, label='Val Loss', linewidth=2)
@@ -425,11 +337,11 @@ class PEMFC_ANN_Trainer:
         ax.grid(True, alpha=0.3)
         ax.set_yscale('log')
         
-        # 2. Predictions vs Actual
+        
         ax = axes[1]
         ax.scatter(actual, predictions, alpha=0.5, s=20)
         
-        # Perfect prediction line
+        
         min_val = min(actual.min(), predictions.min())
         max_val = max(actual.max(), predictions.max())
         ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect')
@@ -453,14 +365,11 @@ class PEMFC_ANN_Trainer:
 
 
 def main():
-    """
-    Train and evaluate ANN baseline for PEMFC.
-    """
     print("="*70)
     print("ANN Baseline for PEMFC - Training & Evaluation")
     print("="*70)
     
-    # Initialize trainer
+    
     trainer = PEMFC_ANN_Trainer(
         learning_rate=1e-3,
         batch_size=32,
@@ -470,7 +379,7 @@ def main():
         verbose=True
     )
     
-    # Prepare data
+    
     train_loader, val_loader, test_loader = trainer.prepare_data(
         data_path="data/synthetic/pemfc_polarization.csv",
         test_size=0.15,
@@ -478,20 +387,20 @@ def main():
         random_state=42
     )
     
-    # Train
+    
     train_losses, val_losses = trainer.train(train_loader, val_loader)
     
-    # Evaluate
+    
     rmse, mae, r_squared, predictions, actual = trainer.evaluate(test_loader)
     
-    # SHAP importance
+    
     try:
         importance = trainer.compute_shap_importance(n_samples=100)
     except Exception as e:
         print(f"⚠ SHAP computation failed: {e}")
         importance = None
     
-    # Plot
+    
     trainer.plot_results(
         np.array(train_losses),
         np.array(val_losses),
@@ -502,7 +411,7 @@ def main():
         save_path="results/figures/ann_pemfc_results.png"
     )
     
-    # Summary
+    
     print("\n" + "="*70)
     print("SUMMARY")
     print("="*70)

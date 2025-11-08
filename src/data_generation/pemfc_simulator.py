@@ -1,15 +1,10 @@
-"""
-PEMFC Polarization Curve Simulator
-Generates synthetic polarization data based on governing equations (1-5) from paper.
-"""
-
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Optional
 import sys
 import os
 
-# Add parent directory to path for imports
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from config.physics_constants import (
@@ -25,27 +20,11 @@ from config.physics_constants import (
 
 
 class PEMFCSimulator:
-    """
-    Simulates PEMFC polarization behavior based on physics equations.
-    
-    Implements:
-    - Equation (1): V = E_Nernst - η_act - η_Ω - η_mt
-    - Equation (2): Butler-Volmer kinetics (Tafel approximation)
-    - Equation (4): Nernst potential
-    - Equation (5): Ohmic resistance
-    """
-    
     def __init__(self, random_seed: int = 42):
-        """
-        Initialize PEMFC simulator.
-        
-        Args:
-            random_seed: Random seed for reproducibility
-        """
         self.random_seed = random_seed
         np.random.seed(random_seed)
         
-        # Default parameters (will be varied for different conditions)
+        
         self.i0_cathode = PEMFCParams.i0_cathode_typical
         self.alpha = PEMFCParams.alpha_cathode
         self.R_ohm = PEMFCParams.R_ohm_typical
@@ -58,18 +37,6 @@ class PEMFCSimulator:
         p_O2: float = 0.21,
         a_H2O: float = 1.0
     ) -> float:
-        """
-        Calculate Nernst potential (Equation 4).
-        
-        Args:
-            T_celsius: Temperature [°C]
-            p_H2: Hydrogen partial pressure [atm]
-            p_O2: Oxygen partial pressure [atm]
-            a_H2O: Water activity
-        
-        Returns:
-            E_Nernst: Nernst potential [V]
-        """
         T_kelvin = celsius_to_kelvin(T_celsius)
         return nernst_potential_pemfc(T_kelvin, p_H2, p_O2, a_H2O)
     
@@ -80,24 +47,10 @@ class PEMFCSimulator:
         alpha: float,
         T_celsius: float
     ) -> np.ndarray:
-        """
-        Calculate activation overpotential using Tafel approximation.
-        
-        η_act = (RT/αF) * ln(i/i0)
-        
-        Args:
-            i: Current density [A/cm²]
-            i0: Exchange current density [A/cm²]
-            alpha: Transfer coefficient
-            T_celsius: Temperature [°C]
-        
-        Returns:
-            η_act: Activation overpotential [V]
-        """
         T_kelvin = celsius_to_kelvin(T_celsius)
         RT_over_alphaF = (R * T_kelvin) / (alpha * F)
         
-        # Avoid log(0) for very small currents
+        
         i_safe = np.maximum(i, 1e-8)
         eta_act = RT_over_alphaF * np.log(i_safe / i0)
         
@@ -108,18 +61,6 @@ class PEMFCSimulator:
         i: np.ndarray,
         R_ohm: float
     ) -> np.ndarray:
-        """
-        Calculate ohmic overpotential (Equation 5).
-        
-        η_Ω = i * R_Ω
-        
-        Args:
-            i: Current density [A/cm²]
-            R_ohm: Ohmic resistance [Ω·cm²]
-        
-        Returns:
-            η_Ω: Ohmic overpotential [V]
-        """
         return i * R_ohm
     
     def mass_transfer_overpotential(
@@ -127,26 +68,12 @@ class PEMFCSimulator:
         i: np.ndarray,
         i_L: float,
         T_celsius: float,
-        n: int = 4  # 4 electrons for O2 reduction
+        n: int = 4  
     ) -> np.ndarray:
-        """
-        Calculate mass transfer overpotential.
-        
-        η_mt = -(RT/nF) * ln(1 - i/i_L)
-        
-        Args:
-            i: Current density [A/cm²]
-            i_L: Limiting current density [A/cm²]
-            T_celsius: Temperature [°C]
-            n: Number of electrons
-        
-        Returns:
-            η_mt: Mass transfer overpotential [V]
-        """
         T_kelvin = celsius_to_kelvin(T_celsius)
         RT_over_nF = (R * T_kelvin) / (n * F)
         
-        # Prevent division issues and log of negative numbers
+        
         ratio = np.minimum(i / i_L, 0.99)
         eta_mt = -RT_over_nF * np.log(1 - ratio)
         
@@ -162,36 +89,16 @@ class PEMFCSimulator:
         alpha: float,
         R_ohm: float,
         i_L: float
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """
-        Calculate cell voltage and loss breakdown (Equation 1).
-        
-        V = E_Nernst - η_act - η_Ω - η_mt
-        
-        Args:
-            i: Current density array [A/cm²]
-            T_celsius: Temperature [°C]
-            p_H2: H2 partial pressure [atm]
-            p_O2: O2 partial pressure [atm]
-            i0: Exchange current density [A/cm²]
-            alpha: Transfer coefficient
-            R_ohm: Ohmic resistance [Ω·cm²]
-            i_L: Limiting current density [A/cm²]
-        
-        Returns:
-            V: Cell voltage [V]
-            losses: Dictionary of loss components
-        """
-        # Calculate components
+    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:        
         E_nernst = self.nernst_potential(T_celsius, p_H2, p_O2)
         eta_act = self.activation_overpotential(i, i0, alpha, T_celsius)
         eta_ohm = self.ohmic_overpotential(i, R_ohm)
         eta_mt = self.mass_transfer_overpotential(i, i_L, T_celsius)
         
-        # Cell voltage
+        
         V = E_nernst - eta_act - eta_ohm - eta_mt
         
-        # Ensure physical bounds
+        
         V = np.maximum(V, 0.0)
         
         losses = {
@@ -213,25 +120,10 @@ class PEMFCSimulator:
         n_points: int = 20,
         add_noise: bool = True
     ) -> pd.DataFrame:
-        """
-        Generate a single polarization curve for given conditions.
         
-        Args:
-            T_celsius: Temperature [°C]
-            stoich_anode: Anode stoichiometry
-            stoich_cathode: Cathode stoichiometry
-            i_min: Minimum current density [A/cm²]
-            i_max: Maximum current density [A/cm²]
-            n_points: Number of data points
-            add_noise: Whether to add measurement noise
-        
-        Returns:
-            DataFrame with polarization data
-        """
-        # Generate current density range
         i = np.linspace(i_min, i_max, n_points)
         
-        # Temperature-dependent exchange current density (Arrhenius)
+        
         T_kelvin = celsius_to_kelvin(T_celsius)
         i0 = arrhenius_i0(
             PEMFCParams.i0_cathode_typical,
@@ -239,32 +131,32 @@ class PEMFCSimulator:
             T_kelvin
         )
         
-        # Parameters (could be functions of stoichiometry, but simplified here)
+        
         alpha = PEMFCParams.alpha_cathode
         R_ohm = PEMFCParams.R_ohm_typical
         
-        # Limiting current depends on flow rate (related to stoichiometry)
-        # Higher stoichiometry → higher flow → higher i_L
+        
+        
         i_L = PEMFCParams.i_L_typical * (stoich_cathode / 2.0)
         
-        # Partial pressures (assuming air cathode, pure H2 anode)
-        p_H2 = 1.0
-        p_O2 = 0.21 * (stoich_cathode / 2.0)  # Simplified: more flow, more O2 available
         
-        # Calculate voltage and losses
+        p_H2 = 1.0
+        p_O2 = 0.21 * (stoich_cathode / 2.0)  
+        
+        
         V, losses = self.cell_voltage(
             i, T_celsius, p_H2, p_O2, i0, alpha, R_ohm, i_L
         )
         
-        # Add noise if requested
+        
         if add_noise:
             noise = np.random.normal(0, NoiseParams.pemfc_voltage_std, len(V))
             V_noisy = V + noise
-            V_noisy = np.maximum(V_noisy, 0.0)  # Ensure non-negative
+            V_noisy = np.maximum(V_noisy, 0.0)  
         else:
             V_noisy = V
         
-        # Create DataFrame
+        
         df = pd.DataFrame({
             "current_density_A_cm2": i,
             "voltage_V": V_noisy,
@@ -296,21 +188,6 @@ class PEMFCSimulator:
         n_points: int = 20,
         add_noise: bool = True
     ) -> pd.DataFrame:
-        """
-        Generate complete PEMFC dataset with multiple operating conditions.
-        
-        Args:
-            temperatures: List of temperatures [°C]
-            stoich_anodes: List of anode stoichiometries
-            stoich_cathodes: List of cathode stoichiometries
-            i_min: Minimum current density [A/cm²]
-            i_max: Maximum current density [A/cm²]
-            n_points: Points per curve
-            add_noise: Add measurement noise
-        
-        Returns:
-            DataFrame with all polarization curves
-        """
         all_data = []
         curve_id = 0
         
@@ -334,7 +211,7 @@ class PEMFCSimulator:
                     if curve_id % 5 == 0:
                         print(f"  Generated {curve_id} curves...")
         
-        # Combine all curves
+        
         dataset = pd.concat(all_data, ignore_index=True)
         
         print(f"✓ Generated {len(dataset)} data points across {curve_id} curves")
@@ -344,15 +221,6 @@ class PEMFCSimulator:
         return dataset
     
     def validate_data(self, df: pd.DataFrame) -> Dict[str, bool]:
-        """
-        Validate generated data against physical bounds.
-        
-        Args:
-            df: DataFrame with PEMFC data
-        
-        Returns:
-            Dictionary of validation results
-        """
         bounds = VALIDATION_BOUNDS["PEMFC"]
         
         checks = {
@@ -379,13 +247,10 @@ class PEMFCSimulator:
 
 
 def main():
-    """
-    Main function to generate PEMFC dataset.
-    """
-    # Initialize simulator
+    
     simulator = PEMFCSimulator(random_seed=NoiseParams.random_seed)
     
-    # Generate dataset
+    
     dataset = simulator.generate_dataset(
         temperatures=[50, 60, 70, 80, 90],
         stoich_anodes=[1.2, 1.5, 2.0],
@@ -396,20 +261,20 @@ def main():
         add_noise=True
     )
     
-    # Validate
+    
     validation = simulator.validate_data(dataset)
     print("\nValidation Results:")
     for check, passed in validation.items():
         status = "✓" if passed else "✗"
         print(f"  {status} {check}: {passed}")
     
-    # Save to CSV
+    
     output_path = "data/synthetic/pemfc_polarization.csv"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     dataset.to_csv(output_path, index=False)
     print(f"\n✓ Saved dataset to: {output_path}")
     
-    # Save metadata
+    
     metadata = {
         "n_curves": int(dataset["curve_id"].nunique()),
         "n_points": int(len(dataset)),

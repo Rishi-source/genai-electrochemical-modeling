@@ -283,13 +283,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📧 Contact
 
 For questions or collaborations:
-- **Email**: [your-email@example.com]
-- **GitHub Issues**: [Create an issue](https://github.com/YOUR_USERNAME/genai-electrochemical-modeling/issues)
+- **Email**: [f20221683@pilani.bits-pilani.ac.in]
+- **GitHub Issues**: [Create an issue](https://github.com/rishi-source/genai-electrochemical-modeling/issues)
 
 ## 🔗 Links
 
 - **Paper**: [Link to paper when published]
-- **Documentation**: See `PHASE3_SUMMARY.md` for detailed technical report
 - **Results**: All figures and tables in `results/` directory
 
 ---

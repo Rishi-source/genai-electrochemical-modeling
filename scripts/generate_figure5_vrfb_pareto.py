@@ -1,110 +1,103 @@
-"""
-Generate Figure 5: Enhanced VRFB Pareto Front
-Shows multi-objective optimization with design space exploration.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import json
 
-# Load VRFB optimization results
+
 with open('results/tables/mechanistic_benchmark.json', 'r') as f:
     mech_results = json.load(f)
 
-# Physics constants and parameters
-R = 8.314  # J/(mol·K)
-F = 96485  # C/mol
-T = 25 + 273.15  # K
-i_target = 150e-3  # A/cm² (target current density)
 
-# Design space
-electrode_thicknesses = np.array([3, 5, 7, 10])  # mm
-flow_rates = np.linspace(10, 50, 20)  # mL/s
+R = 8.314  
+F = 96485  
+T = 25 + 273.15  
+i_target = 150e-3  
 
-# Generate Pareto front data
-def calculate_vrfb_performance(delta_e, Q):
-    """Calculate voltage efficiency and pumping power."""
-    # Simplified VRFB model
-    # Exchange current and transfer coefficient
-    i0 = 1e-3  # A/cm²
+
+electrode_thicknesses = np.array([3, 5, 7, 10])  
+flow_rates = np.linspace(10, 50, 20)  
+
+
+def calculate_vrfb_performance(delta_e, Q):    
+    
+    i0 = 1e-3  
     alpha = 0.5
     
-    # Nernst potential
-    E_nernst = 1.26  # V
     
-    # Activation overpotential
+    E_nernst = 1.26  
+    
+    
     eta_act = (R * T / (alpha * F)) * np.log(i_target / i0)
     
-    # Ohmic resistance (function of electrode thickness)
-    R_ohm = 0.05 + (delta_e / 10) * 0.1  # Ω·cm² (increases with thickness)
+    
+    R_ohm = 0.05 + (delta_e / 10) * 0.1  
     eta_ohm = i_target * R_ohm
     
-    # Mass transfer (function of flow rate)
-    # Sherwood correlation: Sh = a * Re^b * Sc^(1/3)
-    # k_m = Sh * D / d_h
-    D = 1e-10  # m²/s
-    d_h = 0.001  # m (hydraulic diameter)
-    mu = 1e-3  # Pa·s (viscosity)
-    rho = 1000  # kg/m³ (density)
     
-    Re = (rho * Q * 1e-6 * d_h) / (mu * 0.0001)  # Reynolds number
-    Sh = 1.5 * Re**0.5  # Simplified Sherwood
+    
+    
+    D = 1e-10  
+    d_h = 0.001  
+    mu = 1e-3  
+    rho = 1000  
+    
+    Re = (rho * Q * 1e-6 * d_h) / (mu * 0.0001)  
+    Sh = 1.5 * Re**0.5  
     k_m = Sh * D / d_h
     
-    # Limiting current
-    c_bulk = 2000  # mol/m³ (vanadium concentration)
-    i_L = F * k_m * c_bulk * 0.0001  # A/cm²
     
-    # Mass transfer overpotential
+    c_bulk = 2000  
+    i_L = F * k_m * c_bulk * 0.0001  
+    
+    
     if i_target < i_L:
         eta_mt = -(R * T / F) * np.log(1 - i_target / i_L)
     else:
-        eta_mt = 1.0  # High penalty if exceeding limit
+        eta_mt = 1.0  
     
-    # Discharge voltage
+    
     V_discharge = E_nernst - eta_act - eta_ohm - eta_mt
     
-    # Charge voltage (approximate)
+    
     V_charge = E_nernst + eta_act + eta_ohm + eta_mt
     
-    # Voltage efficiency
+    
     eta_V = V_discharge / V_charge
     
-    # Pumping power (simplified)
-    # P_p = Q * Delta_p
-    # Delta_p ∝ Q² (turbulent flow in porous media)
-    A_cross = 0.0001  # m² (cross-sectional area)
-    f = 0.1  # Friction factor
-    Delta_p = f * (rho * (Q * 1e-6 / A_cross)**2) / (2 * d_h)  # Pa
-    P_p = (Q * 1e-6) * Delta_p  # W
+    
+    
+    
+    A_cross = 0.0001  
+    f = 0.1  
+    Delta_p = f * (rho * (Q * 1e-6 / A_cross)**2) / (2 * d_h)  
+    P_p = (Q * 1e-6) * Delta_p  
     
     return eta_V, P_p, i_L
 
-# Generate design points
+
 design_points = []
 for delta_e in electrode_thicknesses:
     for Q in flow_rates:
         eta_V, P_p, i_L = calculate_vrfb_performance(delta_e, Q)
-        if i_target < i_L and eta_V > 0 and eta_V < 1.0:  # Valid design
+        if i_target < i_L and eta_V > 0 and eta_V < 1.0:  
             design_points.append({
                 'delta_e': delta_e,
                 'Q': Q,
                 'eta_V': eta_V,
                 'P_p': P_p,
-                'P_p_norm': P_p / (i_target * 0.01 * 1.26)  # Normalize by power
+                'P_p_norm': P_p / (i_target * 0.01 * 1.26)  
             })
 
-# Check if we have valid design points
+
 if len(design_points) == 0:
     print("WARNING: No valid design points generated. Adjusting parameters...")
-    # Relax constraints and regenerate
+    
     design_points = []
     for delta_e in electrode_thicknesses:
         for Q in flow_rates:
             eta_V, P_p, i_L = calculate_vrfb_performance(delta_e, Q)
-            if 0.5 < eta_V < 0.95:  # More relaxed constraints
+            if 0.5 < eta_V < 0.95:  
                 design_points.append({
                     'delta_e': delta_e,
                     'Q': Q,
@@ -118,7 +111,7 @@ if len(design_points) == 0:
 
 print(f"Generated {len(design_points)} valid design points")
 
-# Convert to arrays
+
 design_points = sorted(design_points, key=lambda x: x['Q'])
 delta_e_array = np.array([d['delta_e'] for d in design_points])
 Q_array = np.array([d['Q'] for d in design_points])
@@ -126,14 +119,14 @@ eta_V_array = np.array([d['eta_V'] for d in design_points])
 P_p_array = np.array([d['P_p'] for d in design_points])
 P_p_norm_array = np.array([d['P_p_norm'] for d in design_points])
 
-# Create figure with main plot and inset
+
 fig = plt.figure(figsize=(14, 8))
 gs = fig.add_gridspec(2, 2, height_ratios=[2, 1], width_ratios=[2, 1])
 
-# Main Pareto front plot
+
 ax_main = fig.add_subplot(gs[0, :])
 
-# Color by electrode thickness
+
 norm = Normalize(vmin=delta_e_array.min(), vmax=delta_e_array.max())
 cmap = cm.viridis
 colors = cmap(norm(delta_e_array))
@@ -142,21 +135,21 @@ scatter = ax_main.scatter(P_p_norm_array * 100, eta_V_array * 100,
                           c=delta_e_array, cmap='viridis', s=100, 
                           alpha=0.7, edgecolors='black', linewidth=1.5)
 
-# Highlight optimal designs (highest efficiency for each thickness)
+
 for thickness in electrode_thicknesses:
     mask = delta_e_array == thickness
     if mask.any():
         points = [(P_p_norm_array[i], eta_V_array[i]) for i, m in enumerate(mask) if m]
         if points:
-            # Find point with highest efficiency
+            
             max_eff_idx = np.argmax([p[1] for p in points])
             optimal_point = points[max_eff_idx]
             ax_main.scatter(optimal_point[0] * 100, optimal_point[1] * 100,
                            s=300, marker='*', c='red', edgecolors='darkred',
                            linewidth=2, zorder=10, label=f'Optimal δₑ={thickness}mm' if thickness == electrode_thicknesses[0] else '')
 
-# Add Pareto frontier line (approximate)
-# For each efficiency level, find minimum pumping power
+
+
 eta_levels = np.linspace(eta_V_array.min(), eta_V_array.max(), 50)
 pareto_front = []
 for eta_level in eta_levels:
@@ -171,11 +164,11 @@ if pareto_front:
     ax_main.plot([p[0] for p in pareto_front], [p[1] for p in pareto_front],
                 'r--', linewidth=2, alpha=0.5, label='Pareto Frontier')
 
-# Colorbar
+
 cbar = plt.colorbar(scatter, ax=ax_main)
 cbar.set_label('Electrode Thickness (mm)', fontsize=12, fontweight='bold')
 
-# Labels and formatting
+
 ax_main.set_xlabel('Normalized Pumping Power (%)', fontsize=13, fontweight='bold')
 ax_main.set_ylabel('Voltage Efficiency (%)', fontsize=13, fontweight='bold')
 ax_main.set_title('VRFB Multi-Objective Optimization: Pareto Front', 
@@ -183,16 +176,16 @@ ax_main.set_title('VRFB Multi-Objective Optimization: Pareto Front',
 ax_main.legend(loc='lower left', fontsize=10)
 ax_main.grid(True, alpha=0.3)
 
-# Add annotations for trade-off regions
+
 ax_main.annotate('High Efficiency\nLow Power', xy=(0.3, 77), fontsize=10,
                 ha='center', bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.7))
 ax_main.annotate('Balanced\nDesign', xy=(1.5, 73), fontsize=10,
                 ha='center', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7))
 
-# Contour map inset: efficiency in (δₑ, Q) space
+
 ax_contour = fig.add_subplot(gs[1, 0])
 
-# Create grid for contour plot
+
 delta_e_grid = np.linspace(3, 10, 50)
 Q_grid = np.linspace(10, 50, 50)
 Delta_E, Q_mesh = np.meshgrid(delta_e_grid, Q_grid)
@@ -203,13 +196,13 @@ for i in range(len(Q_grid)):
         eta_v, _, _ = calculate_vrfb_performance(Delta_E[i, j], Q_mesh[i, j])
         Eta_V_grid[i, j] = eta_v * 100
 
-# Contour plot
+
 contour = ax_contour.contourf(Delta_E, Q_mesh, Eta_V_grid, levels=15, cmap='RdYlGn')
 contour_lines = ax_contour.contour(Delta_E, Q_mesh, Eta_V_grid, levels=10, 
                                    colors='black', linewidths=0.5, alpha=0.3)
 ax_contour.clabel(contour_lines, inline=True, fontsize=8, fmt='%1.1f%%')
 
-# Mark optimal designs
+
 for thickness in electrode_thicknesses:
     mask = delta_e_array == thickness
     if mask.any():
@@ -222,7 +215,7 @@ ax_contour.set_ylabel('Flow Rate (mL/s)', fontsize=11, fontweight='bold')
 ax_contour.set_title('Efficiency Contour Map', fontsize=12, fontweight='bold')
 plt.colorbar(contour, ax=ax_contour, label='η_V (%)')
 
-# Performance metrics table
+
 ax_table = fig.add_subplot(gs[1, 1])
 ax_table.axis('off')
 
@@ -261,7 +254,7 @@ plt.savefig('results/figures/figure5_vrfb_pareto_enhanced.png', dpi=300, bbox_in
 print("✓ Figure 5 (Enhanced) saved: results/figures/figure5_vrfb_pareto_enhanced.png")
 plt.close()
 
-# Print summary
+
 print("\n" + "="*70)
 print("FIGURE 5: VRFB PARETO FRONT SUMMARY")
 print("="*70)

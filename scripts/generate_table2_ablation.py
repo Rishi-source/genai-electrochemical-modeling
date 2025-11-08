@@ -1,27 +1,22 @@
-"""
-Generate Table II: Ablation Analysis
-Detailed breakdown of each configuration's performance.
-"""
-
 import json
 import pandas as pd
 
-# Load ablation results
+
 with open('results/tables/ablation_results.json', 'r') as f:
     data = json.load(f)
 
 results = data['results']
 
-# Create DataFrame
+
 df = pd.DataFrame(results)
 
-# Rename columns for display
+
 df_display = df.copy()
 df_display.columns = ['Config', 'RMSE (mV)', 'MAE (mV)', 'R²', 
                       'Violations (%)', 'Compile Err (%)', 
                       'Time (s)', 'Effort Red. (%)', 'Iterations']
 
-# Round values
+
 df_display['RMSE (mV)'] = df_display['RMSE (mV)'].round(2)
 df_display['MAE (mV)'] = df_display['MAE (mV)'].round(2)
 df_display['R²'] = df_display['R²'].round(4)
@@ -30,12 +25,12 @@ df_display['Compile Err (%)'] = df_display['Compile Err (%)'].round(1)
 df_display['Time (s)'] = df_display['Time (s)'].round(2)
 df_display['Effort Red. (%)'] = df_display['Effort Red. (%)'].round(1)
 
-# Save to CSV
+
 csv_path = 'results/tables/table2_ablation.csv'
 df_display.to_csv(csv_path, index=False)
 print(f"✓ Table II (CSV) saved: {csv_path}")
 
-# Generate LaTeX table
+
 latex_table = r"""\begin{table}[ht]
 \centering
 \caption{Ablation Study: Impact of Framework Components on PEMFC Fitting Performance}
@@ -62,20 +57,20 @@ latex_table += r"""\bottomrule
 \end{table}
 """
 
-# Save LaTeX table
+
 latex_path = 'results/tables/table2_ablation.tex'
 with open(latex_path, 'w') as f:
     f.write(latex_table)
 print(f"✓ Table II (LaTeX) saved: {latex_path}")
 
-# Print formatted table
+
 print("\n" + "="*140)
 print("TABLE II: ABLATION ANALYSIS")
 print("="*140)
 print(df_display.to_string(index=False))
 print("="*140)
 
-# Print summary statistics
+
 print("\nSummary Statistics:")
 print("-" * 60)
 base_row = df_display.iloc[0]

@@ -1,63 +1,58 @@
-"""
-Generate Figure 8: Comparative Performance
-Bar chart comparing RMSE and human effort across all methods.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-# Load baseline results
+
 with open('results/tables/mechanistic_benchmark.json', 'r') as f:
     mech_results = json.load(f)
 
 with open('results/tables/drl_vrfb_results.json', 'r') as f:
     drl_results = json.load(f)
 
-# Compile results from all baselines
-# PEMFC Results (in mV)
+
+
 pemfc_results = {
     'Physics Solver': {
-        'rmse_mV': 9.73,  # From Phase 4 results
-        'human_effort_min': 5,  # Minimal - just run solver
-        'color': '#2ecc71'
+        'rmse_mV': 9.73,  
+        'human_effort_min': 5,  
+        'color': '
     },
     'ANN': {
-        'rmse_mV': 16.62,  # From ann_pemfc results
-        'human_effort_min': 45,  # Setup, training, validation
-        'color': '#3498db'
+        'rmse_mV': 16.62,  
+        'human_effort_min': 45,  
+        'color': '
     },
     'Mechanistic\nBaseline': {
         'rmse_mV': mech_results['pemfc']['rmse_mV'],
-        'human_effort_min': 10,  # Wrapper + execution
-        'color': '#9b59b6'
+        'human_effort_min': 10,  
+        'color': '
     }
 }
 
-# VRFB Results
+
 vrfb_results = {
     'ePCDNN': {
-        'metric': 'Training\nComplete',  # Qualitative
-        'human_effort_min': 60,  # Setup, physics loss, training
-        'color': '#e74c3c'
+        'metric': 'Training\nComplete',  
+        'human_effort_min': 60,  
+        'color': '
     },
     'DRL': {
         'soc_rmse': drl_results['final_soc_rmse'],
         'wlss_%': drl_results['final_wlss_%'],
-        'human_effort_min': 90,  # Complex setup, env design, training
-        'color': '#f39c12'
+        'human_effort_min': 90,  
+        'color': '
     },
     'Mechanistic\nBaseline': {
         'efficiency_%': mech_results['vrfb']['optimal_efficiency_%'],
-        'human_effort_min': 15,  # Wrapper + optimization
-        'color': '#9b59b6'
+        'human_effort_min': 15,  
+        'color': '
     }
 }
 
-# Create figure with 2 subplots
+
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# ============ PEMFC Comparison ============
+
 ax = axes[0]
 
 methods = list(pemfc_results.keys())
@@ -68,17 +63,17 @@ colors = [pemfc_results[m]['color'] for m in methods]
 x = np.arange(len(methods))
 width = 0.35
 
-# RMSE bars
+
 bars1 = ax.bar(x - width/2, rmse_values, width, label='RMSE (mV)',
                color=colors, alpha=0.8, edgecolor='black', linewidth=1.5)
 
-# Human effort on secondary axis
+
 ax2 = ax.twinx()
 bars2 = ax2.bar(x + width/2, effort_values, width, label='Human Effort (min)',
                 color='gray', alpha=0.5, edgecolor='black', linewidth=1.5,
                 hatch='//')
 
-# Labels and formatting
+
 ax.set_xlabel('Method', fontsize=12, fontweight='bold')
 ax.set_ylabel('RMSE (mV)', fontsize=12, fontweight='bold', color='black')
 ax2.set_ylabel('Human Effort (minutes)', fontsize=12, fontweight='bold', color='gray')
@@ -87,7 +82,7 @@ ax.set_xticks(x)
 ax.set_xticklabels(methods, fontsize=10)
 ax.grid(True, alpha=0.3, axis='y')
 
-# Add value labels on bars
+
 for bar in bars1:
     height = bar.get_height()
     ax.text(bar.get_x() + bar.get_width()/2., height,
@@ -100,31 +95,31 @@ for bar in bars2:
              f'{int(height)}m',
              ha='center', va='bottom', fontsize=9, color='gray')
 
-# Combined legend
+
 lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
 ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=10)
 
-# Highlight best performer
+
 ax.axhline(y=min(rmse_values), color='green', linestyle='--', alpha=0.5, linewidth=2)
 ax.text(0.5, min(rmse_values)*1.1, 'Best RMSE', fontsize=9, color='green',
         fontweight='bold', ha='center')
 
-# ============ VRFB Comparison ============
+
 ax = axes[1]
 
-# For VRFB, show human effort comparison
+
 vrfb_methods = list(vrfb_results.keys())
 vrfb_effort = [vrfb_results[m]['human_effort_min'] for m in vrfb_methods]
 vrfb_colors = [vrfb_results[m]['color'] for m in vrfb_methods]
 
 x = np.arange(len(vrfb_methods))
 
-# Human effort bars
+
 bars = ax.bar(x, vrfb_effort, color=vrfb_colors, alpha=0.8,
               edgecolor='black', linewidth=1.5)
 
-# Labels and formatting
+
 ax.set_xlabel('Method', fontsize=12, fontweight='bold')
 ax.set_ylabel('Human Effort (minutes)', fontsize=12, fontweight='bold')
 ax.set_title('VRFB: Implementation Effort', fontsize=14, fontweight='bold')
@@ -132,14 +127,14 @@ ax.set_xticks(x)
 ax.set_xticklabels(vrfb_methods, fontsize=10)
 ax.grid(True, alpha=0.3, axis='y')
 
-# Add value labels and metrics
+
 for i, (bar, method) in enumerate(zip(bars, vrfb_methods)):
     height = bar.get_height()
     ax.text(bar.get_x() + bar.get_width()/2., height,
             f'{int(height)} min',
             ha='center', va='bottom', fontsize=9, fontweight='bold')
     
-    # Add key metric below bar
+    
     if method == 'DRL':
         metric_text = f"RMSE: {vrfb_results[method]['soc_rmse']:.4f}\nWLSS: {vrfb_results[method]['wlss_%']:.2f}%"
     elif method == 'Mechanistic\nBaseline':
@@ -156,7 +151,7 @@ plt.savefig('results/figures/figure8_comparative_performance.png', dpi=300, bbox
 print("✓ Figure 8 saved: results/figures/figure8_comparative_performance.png")
 plt.close()
 
-# Print summary
+
 print("\n" + "="*70)
 print("FIGURE 8: COMPARATIVE PERFORMANCE SUMMARY")
 print("="*70)

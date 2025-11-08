@@ -1,14 +1,3 @@
-"""
-Mechanistic Solver Baseline
-Benchmarks the physics-based solvers against ML baselines.
-
-Provides timing and accuracy metrics for:
-- PEMFC parameter fitting (0D lumped model)
-- VRFB multi-objective optimization
-
-This establishes the "ground truth" baseline for comparison.
-"""
-
 import os
 import time
 import numpy as np
@@ -26,43 +15,26 @@ from src.solvers.vrfb_optimizer import VRFBOptimizer
 
 @dataclass
 class MechanisticBenchmarkResult:
-    """Results from mechanistic solver benchmarking."""
-    # PEMFC results
     pemfc_rmse: float
     pemfc_mae: float
     pemfc_r_squared: float
     pemfc_time: float
     pemfc_iterations: int
     
-    # VRFB results
+    
     vrfb_pareto_points: int
     vrfb_best_efficiency: float
     vrfb_time: float
     vrfb_evaluations: int
     
-    # Comparison metrics
+    
     pemfc_params: Dict[str, float]
     vrfb_optimal_design: Dict[str, float]
 
 
 class MechanisticBenchmark:
-    """
-    Benchmark mechanistic solvers.
-    
-    Runs physics-based solvers and collects:
-    - Accuracy metrics (RMSE, MAE, R²)
-    - Computational cost (wall-clock time, iterations)
-    - Convergence behavior
-    - Parameter values
-    """
     
     def __init__(self, verbose: bool = True):
-        """
-        Initialize benchmark.
-        
-        Args:
-            verbose: Print progress
-        """
         self.verbose = verbose
         
     def benchmark_pemfc(
@@ -70,33 +42,23 @@ class MechanisticBenchmark:
         data_path: str = "data/synthetic/pemfc_polarization.csv",
         test_fraction: float = 0.15
     ) -> Dict[str, float]:
-        """
-        Benchmark PEMFC parameter fitting.
-        
-        Args:
-            data_path: Path to polarization data
-            test_fraction: Fraction of data for testing
-        
-        Returns:
-            Benchmark metrics dictionary
-        """
         if self.verbose:
             print("\n" + "="*70)
             print("Benchmarking PEMFC Mechanistic Solver")
             print("="*70)
         
-        # Load data
+        
         df = pd.read_csv(data_path)
         
-        # Split data
+        
         n_test = int(len(df) * test_fraction)
         df_train = df.iloc[:-n_test]
         df_test = df.iloc[-n_test:]
         
-        # Initialize fitter
+        
         fitter = PEMFCFitter()
         
-        # Benchmark fitting
+        
         start_time = time.time()
         
         i_train = df_train['current_density_A_cm2'].values
@@ -106,11 +68,11 @@ class MechanisticBenchmark:
         
         fit_time = time.time() - start_time
         
-        # Evaluate on test set
+        
         i_test = df_test['current_density_A_cm2'].values
         V_test = df_test['voltage_V'].values
         
-        # Use fitted parameters to predict
+        
         params_array = np.array([
             result.i0_A_cm2,
             result.alpha,
@@ -119,7 +81,7 @@ class MechanisticBenchmark:
         ])
         V_pred = fitter.voltage_model(params_array, i_test)
         
-        # Metrics
+        
         residuals = V_test - V_pred
         rmse = np.sqrt(np.mean(residuals**2))
         mae = np.mean(np.abs(residuals))
@@ -159,28 +121,18 @@ class MechanisticBenchmark:
     
     def benchmark_vrfb(
         self,
-        target_current: float = 200.0,  # mA/cm²
+        target_current: float = 200.0,  
         n_designs: int = 50
     ) -> Dict[str, float]:
-        """
-        Benchmark VRFB multi-objective optimization.
-        
-        Args:
-            target_current: Target operating current density
-            n_designs: Number of design points to evaluate
-        
-        Returns:
-            Benchmark metrics dictionary
-        """
         if self.verbose:
             print("\n" + "="*70)
             print("Benchmarking VRFB Mechanistic Solver")
             print("="*70)
         
-        # Initialize optimizer
+        
         optimizer = VRFBOptimizer()
         
-        # Benchmark optimization
+        
         start_time = time.time()
         
         result = optimizer.optimize(beta=0.5)
@@ -212,26 +164,17 @@ class MechanisticBenchmark:
         self,
         save_path: Optional[str] = None
     ) -> MechanisticBenchmarkResult:
-        """
-        Run complete benchmark suite.
-        
-        Args:
-            save_path: Path to save results JSON
-        
-        Returns:
-            Complete benchmark results
-        """
         print("\n" + "="*70)
         print("MECHANISTIC SOLVER BENCHMARK")
         print("="*70)
         
-        # PEMFC benchmark
+        
         pemfc_results = self.benchmark_pemfc()
         
-        # VRFB benchmark
+        
         vrfb_results = self.benchmark_vrfb()
         
-        # Summary
+        
         print("\n" + "="*70)
         print("BENCHMARK SUMMARY")
         print("="*70)
@@ -245,7 +188,7 @@ class MechanisticBenchmark:
         print(f"  Speed: {vrfb_results['time']:.3f}s ({vrfb_results['evaluations']} evaluations)")
         print(f"  Throughput: {vrfb_results['evaluations']/vrfb_results['time']:.1f} designs/second")
         
-        # Create result object
+        
         result = MechanisticBenchmarkResult(
             pemfc_rmse=pemfc_results['rmse'],
             pemfc_mae=pemfc_results['mae'],
@@ -265,7 +208,7 @@ class MechanisticBenchmark:
             }
         )
         
-        # Save results
+        
         if save_path:
             import json
             results_dict = {
@@ -299,9 +242,6 @@ class MechanisticBenchmark:
 
 
 def main():
-    """
-    Run mechanistic solver benchmark.
-    """
     benchmark = MechanisticBenchmark(verbose=True)
     
     result = benchmark.run_full_benchmark(
