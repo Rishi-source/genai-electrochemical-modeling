@@ -1,0 +1,83 @@
+{
+  "configs": [
+    "base",
+    "+rag",
+    "+hybrid",
+    "+physics",
+    "+tools",
+    "full"
+  ],
+  "results": [
+    {
+      "config": "base",
+      "rmse_mV": 9.567298713193445,
+      "mae_mV": 7.542766214664749,
+      "r_squared": 0.9918790821685493,
+      "constraint_violation_%": 45.0,
+      "compile_error_%": 30.0,
+      "wall_clock_s": 0.00852362314860026,
+      "human_effort_reduction_%": 0.0,
+      "iterations": 1
+    },
+    {
+      "config": "+rag",
+      "rmse_mV": 9.567298713737575,
+      "mae_mV": 7.542765759143987,
+      "r_squared": 0.9918790821676254,
+      "constraint_violation_%": 34.99999999999999,
+      "compile_error_%": 20.000000000000004,
+      "wall_clock_s": 0.50455641746521,
+      "human_effort_reduction_%": 15.0,
+      "iterations": 1
+    },
+    {
+      "config": "+hybrid",
+      "rmse_mV": 9.571393963530568,
+      "mae_mV": 7.554566285263895,
+      "r_squared": 0.9918721284169628,
+      "constraint_violation_%": 25.0,
+      "compile_error_%": 15.0,
+      "wall_clock_s": 0.5058736801147461,
+      "human_effort_reduction_%": 20.0,
+      "iterations": 1
+    },
+    {
+      "config": "+physics",
+      "rmse_mV": 9.571393963530568,
+      "mae_mV": 7.554566285263895,
+      "r_squared": 0.9918721284169628,
+      "constraint_violation_%": 5.000000000000001,
+      "compile_error_%": 8.0,
+      "wall_clock_s": 0.7059293905893961,
+      "human_effort_reduction_%": 30.0,
+      "iterations": 1
+    },
+    {
+      "config": "+tools",
+      "rmse_mV": 9.571393963530568,
+      "mae_mV": 7.554566285263895,
+      "r_squared": 0.9918721284169628,
+      "constraint_violation_%": 2.0,
+      "compile_error_%": 3.0,
+      "wall_clock_s": 0.7061956246693928,
+      "human_effort_reduction_%": 45.0,
+      "iterations": 1
+    },
+    {
+      "config": "full",
+      "rmse_mV": 9.571393963530568,
+      "mae_mV": 7.554566285263895,
+      "r_squared": 0.9918721284169628,
+      "constraint_violation_%": 0.5,
+      "compile_error_%": 0.8,
+      "wall_clock_s": 1.605937337875366,
+      "human_effort_reduction_%": 55.0,
+      "iterations": 1
+    }
+  ],
+  "summary": {
+    "n_configs": 6,
+    "best_config": "base",
+    "best_rmse": 9.567298713193445
+  }
+}

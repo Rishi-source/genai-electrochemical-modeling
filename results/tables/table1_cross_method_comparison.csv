@@ -1,0 +1,9 @@
+Approach,Role,Physics Use,Selected Metrics,Interpretability,Latency,Human Effort
+Mechanistic Solver,Ground-truth modeling,Explicit PDE/DAE,"PEMFC: R²=0.9350, RMSE=27.7mV
+VRFB: η_V=72.2%",High (physical params),Med-High,High (setup)
+ANN (PEMFC) [2],Surrogate for V(i),Implicit,"R²=0.9757, RMSE=16.62mV",Medium (SHAP),Low (inference),Medium
+ePCDNN (VRFB) [1],Physics-informed surrogate,Hard/soft constraints,~30% error reduction vs. PCDNN,Med-High,Medium (training),Med-High
+DRL (VRFB) [3],Parameter tuning/control,Via simulator,"SOC RMSE=0.0544, WLSS=0.37%",Low-Med,High (training),Medium
+Digital Twin [5],Plant-wide prediction,Data-driven,R² up to 0.96 (KNN regression),Medium,Low,Medium
+LLM Multi-Agent [14],Orchestration,Constraint prompts,3× fewer iterations vs. IPOPT,Medium (rationales),Low-Med,Low
+Proposed LLM-RAG-Physics,Process-calc co-pilot,Explicit checks + tools,TBD (Framework ready),Med-High (reports),Low-Med,Low

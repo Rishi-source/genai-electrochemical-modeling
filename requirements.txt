@@ -1,0 +1,143 @@
+# Electrochemical AI Framework - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# ==================== CORE DEPENDENCIES ====================
+
+# Azure OpenAI
+openai>=1.12.0
+azure-identity>=1.15.0
+
+# Scientific Computing
+numpy>=1.24.0
+scipy>=1.11.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.18.0
+
+# ==================== VECTOR DATABASE & RAG ====================
+
+# ChromaDB for vector storage
+chromadb>=0.4.22
+chromadb-client>=0.4.22
+
+# PDF processing
+PyMuPDF>=1.23.0  # fitz
+pdfplumber>=0.10.0
+pypdf>=3.17.0
+
+# Text processing
+tiktoken>=0.5.2
+langchain>=0.1.0
+langchain-openai>=0.0.2
+
+# ==================== MACHINE LEARNING ====================
+
+# Deep Learning
+tensorflow>=2.15.0
+keras>=3.0.0
+
+# PyTorch (for DRL baseline)
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Scikit-learn
+scikit-learn>=1.3.0
+
+# XGBoost (optional)
+xgboost>=2.0.0
+
+# SHAP for interpretability
+shap>=0.44.0
+
+# ==================== OPTIMIZATION ====================
+
+# Optimization algorithms
+pyswarm>=0.6  # Particle Swarm Optimization
+pymoo>=0.6.0  # Multi-objective optimization
+optuna>=3.5.0  # Hyperparameter tuning
+
+# ==================== DATA HANDLING ====================
+
+# Data validation
+pydantic>=2.5.0
+jsonschema>=4.20.0
+
+# Excel support
+openpyxl>=3.1.0
+xlrd>=2.0.0
+
+# ==================== CLI & LOGGING ====================
+
+# Command-line interface
+click>=8.1.0
+rich>=13.7.0  # Beautiful terminal output
+typer>=0.9.0
+
+# Logging
+loguru>=0.7.0
+python-json-logger>=2.0.0
+
+# Progress bars
+tqdm>=4.66.0
+
+# ==================== TESTING & QUALITY ====================
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+
+# Code quality
+black>=23.12.0
+flake8>=7.0.0
+mypy>=1.8.0
+pylint>=3.0.0
+
+# ==================== UTILITIES ====================
+
+# Configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+toml>=0.10.2
+
+# Date/time
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# HTTP requests
+requests>=2.31.0
+httpx>=0.26.0
+
+# Retry logic
+tenacity>=8.2.0
+
+# ==================== MATLAB INTEGRATION (OPTIONAL) ====================
+
+# Uncomment if MATLAB integration needed
+# matlabengine>=9.14.0  # Requires MATLAB installation
+
+# ==================== DEVELOPMENT TOOLS ====================
+
+# Jupyter notebooks
+jupyter>=1.0.0
+ipykernel>=6.28.0
+ipywidgets>=8.1.0
+
+# Documentation
+sphinx>=7.2.0
+sphinx-rtd-theme>=2.0.0
+
+# Memory profiling
+memory-profiler>=0.61.0
+psutil>=5.9.0
+
+# ==================== VERSION CONSTRAINTS ====================
+
+# Python version requirement
+# Requires Python >=3.9, <3.13
+
+# Note: Some packages may have compatibility issues with Python 3.12
+# If encountering issues, use Python 3.10 or 3.11

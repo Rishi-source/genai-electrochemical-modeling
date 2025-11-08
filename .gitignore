@@ -1,0 +1,89 @@
+# Sensitive files - API keys and credentials
+config/azure_config.py
+*.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+.virtualenv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Large data files
+data/chromadb/
+*.sqlite3
+*.db
+
+# PDF literature files
+*.pdf
+Generative AI in Chemical Engineering/
+
+# LaTeX / Overleaf files
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+main.tex
+biblo.bib
+Figures/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+*.log
+tmp/
+temp/
+
+# Test files
+tests/__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS specific
+Thumbs.db
+Desktop.ini
+
+# Project specific
+Prev/
+notebooks/
