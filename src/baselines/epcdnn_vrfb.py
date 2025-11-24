@@ -478,7 +478,7 @@ class ePCDNN_VRFB_Trainer:
             np.sqrt(np.mean((actual[high_idx] - predictions[high_idx])**2)) * 1000
         ]
         
-        bars = ax.bar(soc_bins, rmse_vals, color=['#3498db', '#2e8b57', '#ffa500'])
+        bars = ax.bar(soc_bins, rmse_vals, color=['#3498db', '#2e8b57', '#ffa500']) 
         ax.set_ylabel('RMSE [mV]', fontsize=12)
         ax.set_title('Performance by SOC Region', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3, axis='y')

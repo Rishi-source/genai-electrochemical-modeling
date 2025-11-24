@@ -5,6 +5,7 @@ import numpy as np
 import chromadb
 from chromadb.config import Settings
 from openai import AzureOpenAI
+import pickle
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -20,14 +21,15 @@ class ChromaManager:
     ):
         self.persist_directory = persist_directory
         self.collection_name = collection_name
-        
+        self.covariance_path = os.path.join(persist_directory, f"{collection_name}_covariance.pkl")
+        self.covariance_matrix = None
+        self.condition_features = ['temperature_C', 'pressure_atm', 'current_density_A_cm2']
         
         self.embedding_client = AzureOpenAI(
             api_version="2024-12-01-preview",
             azure_endpoint=EMBEDDING_CONFIG["azure_endpoint"],
             api_key=EMBEDDING_CONFIG["api_key"]
         )
-        
         
         self.client = chromadb.PersistentClient(
             path=persist_directory,
@@ -36,7 +38,6 @@ class ChromaManager:
                 allow_reset=True
             )
         )
-        
         
         try:
             self.collection = self.client.get_collection(name=collection_name)
@@ -48,6 +49,8 @@ class ChromaManager:
                 metadata={"description": "Electrochemical literature for PEMFC and VRFB"}
             )
             print(f"✓ Created new collection: {collection_name}")
+        
+        self._load_or_compute_covariance()
     
     def get_embedding(self, text: str) -> List[float]:
         response = self.embedding_client.embeddings.create(
@@ -88,12 +91,10 @@ class ChromaManager:
             batch_texts = texts[i:i+batch_size]
             batch_metadatas = metadatas[i:i+batch_size]
             
-            
             embeddings = []
             for text in batch_texts:
                 emb = self.get_embedding(text)
                 embeddings.append(emb)
-            
             
             self.collection.add(
                 ids=batch_ids,
@@ -105,6 +106,8 @@ class ChromaManager:
             print(f"  Added batch {i//batch_size + 1}/{(n_docs-1)//batch_size + 1}")
         
         print(f"✓ Added {n_docs} documents")
+        
+        self.compute_covariance_matrix()
     
     def cosine_similarity_search(
         self,
@@ -135,7 +138,7 @@ class ChromaManager:
     ) -> Tuple[List[str], List[Dict[str, Any]], List[float]]:        
         results = self.cosine_similarity_search(
             query, 
-            n_results=n_results*3,  
+            n_results=n_results*3,
             where=where
         )
         
@@ -147,7 +150,6 @@ class ChromaManager:
         cosine_distances = results['distances'][0]
         cosine_sims = [1 - d for d in cosine_distances]
         
-        
         if target_conditions is None:
             return (
                 documents[:n_results],
@@ -155,19 +157,12 @@ class ChromaManager:
                 cosine_sims[:n_results]
             )
         
-        
         hybrid_scores = []
         for idx, (doc, meta, cos_sim) in enumerate(zip(documents, metadatas, cosine_sims)):
-            
-            mah_dist = self._compute_condition_distance(target_conditions, meta)
-            
-            
+            mah_dist = self._compute_mahalanobis_distance(target_conditions, meta)
             phi = self._compute_physics_penalty(target_conditions, meta)
-            
-            
             score = lambda_cos * cos_sim - lambda_mah * mah_dist - lambda_phi * phi
             hybrid_scores.append(score)
-        
         
         sorted_indices = np.argsort(hybrid_scores)[::-1][:n_results]
         
@@ -177,29 +172,96 @@ class ChromaManager:
             [hybrid_scores[i] for i in sorted_indices]
         )
     
-    def _compute_condition_distance(
+    def _load_or_compute_covariance(self):
+        if os.path.exists(self.covariance_path):
+            try:
+                with open(self.covariance_path, 'rb') as f:
+                    self.covariance_matrix = pickle.load(f)
+                print(f"✓ Loaded covariance matrix from {self.covariance_path}")
+                return
+            except Exception as e:
+                print(f"⚠ Could not load covariance matrix: {e}")
+        
+        self.compute_covariance_matrix()
+    
+    def compute_covariance_matrix(self):
+        if self.collection.count() < 10:
+            print(f"⚠ Too few documents ({self.collection.count()}) to compute covariance matrix")
+            self.covariance_matrix = None
+            return
+        
+        all_data = self.collection.get(include=['metadatas'])
+        metadatas = all_data['metadatas']
+        
+        condition_vectors = []
+        for meta in metadatas:
+            vector = []
+            for feature in self.condition_features:
+                vector.append(meta.get(feature, 0.0))
+            condition_vectors.append(vector)
+        
+        condition_vectors = np.array(condition_vectors)
+        
+        try:
+            cov = np.cov(condition_vectors.T)
+            epsilon = 1e-6
+            cov += epsilon * np.eye(cov.shape[0])
+            self.covariance_matrix = cov
+            
+            os.makedirs(os.path.dirname(self.covariance_path), exist_ok=True)
+            with open(self.covariance_path, 'wb') as f:
+                pickle.dump(self.covariance_matrix, f)
+            
+            print(f"✓ Computed and saved covariance matrix: shape {cov.shape}")
+        except Exception as e:
+            print(f"⚠ Error computing covariance matrix: {e}")
+            self.covariance_matrix = None
+    
+    def _compute_mahalanobis_distance(
+        self,
+        target: Dict[str, float],
+        metadata: Dict[str, Any]
+    ) -> float:
+        if self.covariance_matrix is None:
+            return self._compute_simple_distance(target, metadata)
+        
+        x_target = np.array([target.get(f, 0.0) for f in self.condition_features])
+        x_meta = np.array([metadata.get(f, 0.0) for f in self.condition_features])
+        
+        diff = x_meta - x_target
+        
+        try:
+            S_inv = np.linalg.inv(self.covariance_matrix)
+            mah_dist = np.sqrt(diff.T @ S_inv @ diff)
+            normalized_dist = 1 - np.exp(-mah_dist / 10.0)
+            return normalized_dist
+        except np.linalg.LinAlgError:
+            return self._compute_simple_distance(target, metadata)
+    
+    def _compute_simple_distance(
         self,
         target: Dict[str, float],
         metadata: Dict[str, Any]
     ) -> float:
         distances = []
         
-        
         if "temperature_C" in target and "temperature_C" in metadata:
             T_target = target["temperature_C"]
             T_meta = metadata["temperature_C"]
-            
             dist = abs(T_target - T_meta) / 100.0
             distances.append(dist)
-        
         
         if "pressure_atm" in target and "pressure_atm" in metadata:
             p_target = target["pressure_atm"]
             p_meta = metadata["pressure_atm"]
-            
             dist = abs(p_target - p_meta) / 5.0
             distances.append(dist)
         
+        if "current_density_A_cm2" in target and "current_density_A_cm2" in metadata:
+            i_target = target["current_density_A_cm2"]
+            i_meta = metadata["current_density_A_cm2"]
+            dist = abs(i_target - i_meta) / 2.0
+            distances.append(dist)
         
         if distances:
             return np.mean(distances)
@@ -217,7 +279,6 @@ class ChromaManager:
             if i >= i_L:
                 penalty += 1.0
         
-        
         if "temperature_C" in target:
             T = target["temperature_C"]
             T_min = metadata.get("T_min_C", 0)
@@ -229,7 +290,6 @@ class ChromaManager:
     
     def get_stats(self) -> Dict[str, Any]:
         count = self.collection.count()
-        
         
         if count > 0:
             sample = self.collection.get(limit=min(count, 5))
@@ -256,16 +316,13 @@ class ChromaManager:
 def main():
     print("Testing ChromaDB Manager...")
     
-    
     manager = ChromaManager()
-    
     
     stats = manager.get_stats()
     print(f"\nCollection Stats:")
     print(f"  Name: {stats['collection_name']}")
     print(f"  Documents: {stats['document_count']}")
     print(f"  Directory: {stats['persist_directory']}")
-    
     
     if stats['document_count'] == 0:
         print("\nAdding test document...")
@@ -282,14 +339,12 @@ def main():
         )
         print("✓ Added test document")
     
-    
     print("\nTesting cosine similarity search...")
     results = manager.cosine_similarity_search(
         query="What is the exchange current density for PEMFC?",
         n_results=3
     )
     print(f"  Found {len(results['documents'][0])} results")
-    
     
     print("\nTesting hybrid similarity search...")
     docs, metas, scores = manager.hybrid_similarity_search(
