@@ -47,6 +47,16 @@ class SelfCorrectionResult:
 
 
 class SelfCorrectingAgent:
+    """
+    Implements the "LLM-RAG-Physics" orchestration framework described in the paper.
+    
+    This agent coordinates:
+    1. Code Generation (using LLM + RAG)
+    2. Physics Validation (checking constraints, units, syntax)
+    3. Self-Correction Loop (regenerating code based on validator feedback)
+    
+    This corresponds to the "Closed-Loop Refinement" block in the system architecture.
+    """
     def __init__(
         self,
         rag_manager: Optional[ChromaManager] = None,

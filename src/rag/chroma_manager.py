@@ -136,6 +136,28 @@ class ChromaManager:
         lambda_phi: float = 0.2,
         where: Optional[Dict[str, Any]] = None
     ) -> Tuple[List[str], List[Dict[str, Any]], List[float]]:        
+        """
+        Performs hybrid similarity search using Equation 3 from the paper.
+        
+        Score S(d, q) = λ_cos * CosineSim(d, q) - λ_mah * MahalanobisDist(d_cond, q_cond) - λ_phi * PhysicsPenalty(d, q)
+        
+        Where:
+        - CosineSim: Semantic similarity between query and document text
+        - MahalanobisDist: Statistical distance between operating conditions (T, P, I)
+        - PhysicsPenalty: Hard penalty for violated constraints (e.g., T < T_min)
+        
+        Args:
+            query: Natural language query
+            target_conditions: target operating conditions (e.g., {'temperature_C': 80})
+            n_results: Number of results to return
+            lambda_cos: Weight for cosine similarity (default 0.5)
+            lambda_mah: Weight for Mahalanobis distance (default 0.3)
+            lambda_phi: Weight for physics penalty (default 0.2)
+            where: Optional ChromaDB filter
+            
+        Returns:
+            Tuple of (documents, metadatas, scores)
+        """
         results = self.cosine_similarity_search(
             query, 
             n_results=n_results*3,

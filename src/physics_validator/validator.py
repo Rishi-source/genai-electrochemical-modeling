@@ -40,7 +40,17 @@ class ValidationResult:
 
 
 class PhysicsValidator:
+    """
+    Implements the "Physics-Constrained Validation" module.
     
+    Responsible for ensuring generated code adheres to:
+    1. Syntactic correctness (AST parsing)
+    2. Dimensional consistency (Unit checking)
+    3. Physics constraints (e.g., i < i_L, alpha in [0,1], T > 0)
+    4. Numerical stability (e.g., no log(negative), reasonable exponents)
+    
+    As described in Section 'Physics-Informed Verification' of the paper.
+    """
     
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
