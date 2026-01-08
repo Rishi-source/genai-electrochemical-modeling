@@ -53,85 +53,123 @@ User Task (Natural Language)
 Results + Audit Trail
 ```
 
-## 🚀 Quick Start
+## 🔄 Reproducibility
+To facilitate external validation and community implementation, this repository provides:
 
-### Prerequisites
-- Python 3.10+
-- Azure OpenAI API access (for LLM orchestration)
+- **Prompts**: Exact system and user prompts used for the LLM experiments are in [`src/llm_orchestrator/prompts`](src/llm_orchestrator/prompts).
+- **Physics Constraints**: The `PhysicsValidator` logic and regex patterns are available in [`src/physics_validator`](src/physics_validator).
+- **Data**: Synthetic PEMFC and VRFB datasets used for extensive benchmarking are in [`data/synthetic`](data/synthetic).
 
-### Installation
+**Note on Proprietary Assets**:
+- **Full-Text PDFs**: Due to copyright restrictions, the specific third-party journal articles used to populate the RAG database are not included. Users must supply their own PDF libraries.
+- **Aspen Plus Files**: The source `.bkp` simulation files are not provided due to licensing; however, the generated high-fidelity CSV datasets are fully available for benchmarking.
 
-1. **Clone the repository**
+## 📘 User Guide
+
+### 1. Environment Setup
+
+We recommend using **Miniconda** or **Anaconda** to manage dependencies and avoid conflicts.
+
+#### Option A: Using Conda (Recommended)
 ```bash
-git clone https://github.com/YOUR_USERNAME/genai-electrochemical-modeling.git
+# 1. Create a new environment with Python 3.10
+conda create -n genai-electro python=3.10 -y
+
+# 2. Activate the environment
+conda activate genai-electro
+
+# 3. Clone and install
+git clone https://github.com/Rishi-source/genai-electrochemical-modeling.git
 cd genai-electrochemical-modeling
-```
-
-2. **Create virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**
-```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure Azure OpenAI** (for LLM features)
+#### Option B: Using Standard Venv
 ```bash
-cp config/azure_config.template.py config/azure_config.py
-# Edit config/azure_config.py with your Azure credentials
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### Running Experiments
+### 2. Configuration
 
-#### 1. Generate Synthetic Data
+The framework requires access to an LLM provider (Azure OpenAI or OpenAI) to function.
+
+1.  **Copy the template**:
+    ```bash
+    cp config/azure_config.template.py config/azure_config.py
+    ```
+
+2.  **Edit `config/azure_config.py`**:
+    Open the file and fill in your credentials.
+    ```python
+    # Example config/azure_config.py
+    API_TYPE = "azure"  # or "openai"
+    API_KEY = "sk-..."
+    API_BASE = "https://your-resource.openai.azure.com/"
+    API_VERSION = "2023-05-15"
+    DEPLOYMENT_NAME = "gpt-4-turbo"
+    ```
+
+### 3. Execution Scenarios
+
+#### Scenario A: Full Replication (Paper Results)
+To reproduce all figures and tables from the manuscript, run the pipeline in order:
+
+1.  **Generate Synthetic Data**:
+    ```bash
+    # Creates data/synthetic/pemfc_polarization.csv (N=150 curves)
+    python src/data_generation/pemfc_simulator.py
+    
+    # Creates data/synthetic/vrfb_cycles.csv (N=500 cycles)
+    python src/data_generation/vrfb_simulator.py
+    ```
+
+2.  **Train/Run Baselines**:
+    ```bash
+    # Train ANN baseline (saves model to models/ann_pemfc.pth)
+    python src/baselines/ann_pemfc.py
+    
+    # Run DRL agent training (saves results to results/baselines/drl)
+    python src/baselines/drl_vrfb.py
+    ```
+
+3.  **Run LLM Orchestrator (Ablation Study)**:
+    *Note: This step makes real API calls and may incur costs.*
+    ```bash
+    # Runs all 6 configurations on the test set
+    python src/llm_orchestrator/ablation_runner.py
+    ```
+
+4.  **Generate Plots**:
+    ```bash
+    # Generates Figure 8 (Comparison) and Figure 9 (Ablation)
+    python scripts/generate_figure8_comparison.py
+    python scripts/generate_figure9_ablation.py
+    ```
+
+#### Scenario B: Quick Test (Single Curve Fitting)
+To test the framework without running the full benchmark:
+
 ```bash
-# PEMFC polarization curves
-python src/data_generation/pemfc_simulator.py
+# Run the PEMFC fitter on a single sample curve
+python src/solvers/pemfc_fitter_demo.py --sample_id 42
 
-# VRFB charge-discharge cycles
-python src/data_generation/vrfb_simulator.py
+# Expected Output:
+# - Retrieved equations from RAG
+# - Generated Python/MATLAB code
+# - Fitted parameters (i0, alpha, R) vs Ground Truth
+# - Plot saved to results/demo_fit_42.png
 ```
 
-#### 2. Run Baseline Methods
-```bash
-# ANN for PEMFC
-python src/baselines/ann_pemfc.py
+### 4. Troubleshooting
 
-# ePCDNN for VRFB
-python src/baselines/epcdnn_vrfb.py
-
-# DRL for VRFB
-python src/baselines/drl_vrfb.py
-```
-
-#### 3. Run Ablation Study
-```bash
-python src/llm_orchestrator/ablation_runner.py
-```
-
-#### 4. Generate Figures & Tables
-```bash
-# Figure 4: PEMFC decomposition
-python scripts/generate_figure4_pemfc_decomposition.py
-
-# Figure 5: VRFB Pareto front
-python scripts/generate_figure5_vrfb_pareto_simple.py
-
-# Figure 8: Cross-method comparison
-python scripts/generate_figure8_comparison.py
-
-# Figure 9: Ablation study
-python scripts/generate_figure9_ablation.py
-
-# Table I: Method comparison
-python scripts/generate_table1_comparison.py
-
-# Table II: Ablation analysis
-python scripts/generate_table2_ablation.py
-```
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `AuthenticationError: 401` | Invalid API Key | Check `config/azure_config.py` against your provider dashboard. |
+| `ModuleNotFoundError` | Missing package | Run `pip install -r requirements.txt` again. |
+| `ConstraintViolation` | LLM hallucination | This is expected in the "Base" ablation. Use `+Physics` config. |
+| `RateLimitError` | API quota exceeded | Add `time.sleep` in `src/llm_orchestrator/client.py` or request quota increase. |
 
 ## 📁 Project Structure
 
