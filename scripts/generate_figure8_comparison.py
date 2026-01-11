@@ -13,39 +13,39 @@ with open('results/tables/drl_vrfb_results.json', 'r') as f:
 
 pemfc_results = {
     'Physics Solver': {
-        'rmse_mV': 9.73,  
-        'human_effort_min': 5,  
-        'color': '
+        'rmse_mV': 9.73,
+        'human_effort_min': 5,
+        'color': '#2ecc71'
     },
     'ANN': {
-        'rmse_mV': 16.62,  
-        'human_effort_min': 45,  
-        'color': '
+        'rmse_mV': 16.62,
+        'human_effort_min': 45,
+        'color': '#e74c3c'
     },
     'Mechanistic\nBaseline': {
         'rmse_mV': mech_results['pemfc']['rmse_mV'],
-        'human_effort_min': 10,  
-        'color': '
+        'human_effort_min': 10,
+        'color': '#3498db'
     }
 }
 
 
 vrfb_results = {
     'ePCDNN': {
-        'metric': 'Training\nComplete',  
-        'human_effort_min': 60,  
-        'color': '
+        'metric': 'Training\nComplete',
+        'human_effort_min': 60,
+        'color': '#9b59b6'
     },
     'DRL': {
         'soc_rmse': drl_results['final_soc_rmse'],
         'wlss_%': drl_results['final_wlss_%'],
-        'human_effort_min': 90,  
-        'color': '
+        'human_effort_min': 90,
+        'color': '#e67e22'
     },
     'Mechanistic\nBaseline': {
         'efficiency_%': mech_results['vrfb']['optimal_efficiency_%'],
-        'human_effort_min': 15,  
-        'color': '
+        'human_effort_min': 15,
+        'color': '#3498db'
     }
 }
 

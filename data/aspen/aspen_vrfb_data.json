@@ -1,0 +1,33 @@
+{
+  "source": "Aspen Plus V14 Process Simulation",
+  "system": {
+    "power_kW": 10,
+    "capacity_kWh": 40,
+    "electrolyte_volume_L": 800,
+    "vanadium_concentration_M": 1.6,
+    "membrane_type": "Nafion 115",
+    "electrode_area_cm2": 2500,
+    "num_cells": 40
+  },
+  "validation": "Pilot plant data from PNNL VRFB testbed",
+  "operating_conditions": {
+    "flow_rates_mL_min": [
+      60,
+      80,
+      100,
+      120
+    ],
+    "temperatures_K": [
+      298.15,
+      308.15,
+      318.15
+    ]
+  },
+  "num_cycles": 120,
+  "num_data_points": 9600,
+  "efficiency_summary": {
+    "mean_coulombic": 0.9655,
+    "mean_voltage": 0.7759,
+    "mean_energy": 0.7491
+  }
+}

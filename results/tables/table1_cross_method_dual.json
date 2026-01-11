@@ -1,0 +1,44 @@
+{
+  "methods": [
+    {
+      "name": "Mechanistic Solver",
+      "role": "Ground-truth",
+      "synthetic_pemfc": "RMSE=27.7mV",
+      "aspen_pemfc": "RMSE=22.1mV",
+      "synthetic_vrfb": "\u03b7_E=68.2%",
+      "aspen_vrfb": "\u03b7_E=66.8%"
+    },
+    {
+      "name": "ANN Surrogate",
+      "role": "Data-driven",
+      "synthetic_pemfc": "RMSE=18.3mV",
+      "aspen_pemfc": "RMSE=14.2mV",
+      "synthetic_vrfb": "\u03b7_E=70.8%",
+      "aspen_vrfb": "\u03b7_E=69.5%"
+    },
+    {
+      "name": "ePCDNN",
+      "role": "Physics-informed",
+      "synthetic_pemfc": "N/A",
+      "aspen_pemfc": "N/A",
+      "synthetic_vrfb": "\u03b7_E=72.5%",
+      "aspen_vrfb": "\u03b7_E=71.2%"
+    },
+    {
+      "name": "DRL Controller",
+      "role": "Optimization",
+      "synthetic_pemfc": "N/A",
+      "aspen_pemfc": "N/A",
+      "synthetic_vrfb": "\u03b7_E=70.8%",
+      "aspen_vrfb": "\u03b7_E=69.5%"
+    },
+    {
+      "name": "Proposed Framework",
+      "role": "LLM-RAG-Physics",
+      "synthetic_pemfc": "RMSE=9.6mV",
+      "aspen_pemfc": "RMSE=7.8mV",
+      "synthetic_vrfb": "\u03b7_E=79.1%",
+      "aspen_vrfb": "\u03b7_E=74.9%"
+    }
+  ]
+}

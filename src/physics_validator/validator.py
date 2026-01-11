@@ -115,12 +115,13 @@ class PhysicsValidator:
             result.add_violation("syntax", f"Parsing error: {str(e)}")
     
     def _check_dimensional_consistency(self, code: str, result: ValidationResult):
-        unit_pattern = r'(\w+)\s*=\s*([^
+        unit_pattern = r'(\w+)\s*=\s*([^\s#]+)\s*#?\s*(\w+)?'
         matches = re.findall(unit_pattern, code)
-        
+
         variables_with_units = {}
-        for var, value, unit in matches:
-            if unit:
+        for match in matches:
+            if len(match) >= 3 and match[2]:
+                var, value, unit = match[0], match[1], match[2]
                 variables_with_units[var] = unit.strip()
         
         
